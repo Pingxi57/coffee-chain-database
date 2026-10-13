@@ -17,7 +17,8 @@
 --   Q11 Median delivery time per branch                    ROW_NUMBER + COUNT() OVER (median)
 --   Q12 Unusually quiet days per branch                    RECURSIVE CTE calendar, CROSS/LEFT JOIN
 --
--- The dataset ends on 2026-09-30, so "today" is fixed here for repeatable results.
+-- The dataset ends on 2026-09-30, so "today" is fixed here for repeatable results,
+-- and every query ignores anything after it (e.g. the demo orders from 05_demo.sql).
 -- =====================================================================
 USE coffee_chain_db;
 SET NAMES utf8mb4;   -- make sure accented names (Caffè, Açaí) are stored correctly
@@ -36,6 +37,7 @@ WITH monthly AS (
            SUM(p.Amount)                   AS Revenue
     FROM Payment p
     WHERE p.Payment_Status = 'Success'
+      AND p.Paid_At < @as_of + INTERVAL 1 DAY
     GROUP BY DATE_FORMAT(p.Paid_At, '%Y-%m'), YEAR(p.Paid_At)
 )
 SELECT Month,
@@ -84,6 +86,7 @@ WITH branch_rev AS (
     JOIN Payment p ON p.Order_ID = o.Order_ID AND p.Payment_Status = 'Success'
     JOIN Branch b  ON b.Branch_ID = o.Branch_ID
     WHERE o.Order_DateTime >= @as_of - INTERVAL 12 MONTH
+      AND o.Order_DateTime <  @as_of + INTERVAL 1 DAY
     GROUP BY o.Branch_ID, b.Branch_Name, b.Store_Type
 )
 SELECT RANK() OVER (ORDER BY Revenue DESC)                                    AS Rnk,
@@ -109,6 +112,7 @@ WITH branch_product AS (
     JOIN Order_Item i ON i.Order_ID = o.Order_ID
     WHERE o.Order_Status <> 'Cancelled'
       AND o.Order_DateTime >= @as_of - INTERVAL 6 MONTH
+      AND o.Order_DateTime <  @as_of + INTERVAL 1 DAY
     GROUP BY o.Branch_ID, i.Product_ID
 ),
 ranked AS (
@@ -133,6 +137,7 @@ WITH hourly AS (
     SELECT Branch_ID, HOUR(Order_DateTime) AS Hr, COUNT(*) AS Orders
     FROM Orders
     WHERE Order_DateTime >= @as_of - INTERVAL 3 MONTH
+      AND Order_DateTime <  @as_of + INTERVAL 1 DAY
     GROUP BY Branch_ID, HOUR(Order_DateTime)
 ),
 ranked AS (
@@ -159,6 +164,7 @@ SELECT CASE WHEN DAYOFWEEK(Order_DateTime) IN (1, 7) THEN 'Weekend' ELSE 'Weekda
        COUNT(*) AS Total
 FROM Orders
 WHERE Order_DateTime >= @as_of - INTERVAL 3 MONTH
+  AND Order_DateTime <  @as_of + INTERVAL 1 DAY
 GROUP BY Day_Type;
 
 
@@ -174,6 +180,7 @@ WITH rfm_raw AS (
            SUM(p.Amount)                           AS Monetary
     FROM Orders o
     JOIN Payment p ON p.Order_ID = o.Order_ID AND p.Payment_Status = 'Success'
+    WHERE o.Order_DateTime < @as_of + INTERVAL 1 DAY
     GROUP BY o.Member_ID
 ),
 rfm_score AS (
@@ -218,6 +225,7 @@ WITH visits AS (
                     LAG(Order_DateTime) OVER (PARTITION BY Member_ID ORDER BY Order_DateTime)) AS Gap_Days
     FROM Orders
     WHERE Order_Status <> 'Cancelled'
+      AND Order_DateTime < @as_of + INTERVAL 1 DAY
 ),
 habits AS (
     SELECT Member_ID,
@@ -250,6 +258,7 @@ WITH member_months AS (
            DATE_FORMAT(Order_DateTime, '%Y-%m-01') AS Order_Month
     FROM Orders
     WHERE Order_Status <> 'Cancelled'
+      AND Order_DateTime < @as_of + INTERVAL 1 DAY
 ),
 with_cohort AS (
     SELECT Member_ID, Order_Month,
