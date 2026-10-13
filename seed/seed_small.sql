@@ -13,6 +13,8 @@
 --   * New: deliveries, Starbucks cards, payments, point history, 2 promotions for 2026-27
 -- =====================================================================
 USE coffee_chain_db;
+-- Workbench enables safe-update mode by default, which blocks the bulk UPDATEs below
+SET SQL_SAFE_UPDATES = 0;
 
 -- ---------------------------------------------------------------------
 -- Member
@@ -119,7 +121,7 @@ INSERT INTO Orders (Order_ID, Member_ID, Branch_ID, Promotion_ID, Order_Type, Or
 (400005, 100005, 1005, NULL,   'InStorePickup', 'Paid',      '2025-11-05 16:45:00'),
 (400006, 100006, 1001, NULL,   'OrderToTable',  'Paid',      '2025-11-01 12:10:00'),
 (400007, 100007, 1002, 300004, 'InStorePickup', 'Paid',      '2025-11-02 09:30:00'),
-(400008, 100008, 1003, NULL,   'OrderToTable',  'Paid',      '2025-11-03 18:00:00'),
+(400008, 100008, 1001, NULL,   'OrderToTable',  'Paid',      '2025-11-03 18:00:00'),  -- v1 had this at a Drive Thru (1003)
 (400009, 100009, 1004, NULL,   'InStorePickup', 'Paid',      '2025-11-04 08:50:00'),
 (400010, 100010, 1005, 300004, 'OrderToTable',  'Paid',      '2025-11-05 14:15:00'),
 (400011, 100001, 1001, NULL,   'InStorePickup', 'Completed', '2025-11-01 17:25:00'),
