@@ -13,5 +13,8 @@ Chanapron Sumkhemthong, Ratchanon Srithongkul
 
 *Educational project, not affiliated with Starbucks.*
 
+## ER Diagram
+![ERD v2](docs/erd_v2.png)
+
 ## Status
 🚧 Work in progress: redesigning schema (v2)
