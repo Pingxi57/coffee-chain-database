@@ -1,0 +1,168 @@
+// Coffee Chain Database — ERD v2
+// Paste into https://dbdiagram.io (left panel). Generated from schema/schema_v2.sql
+
+Table Member {
+  Member_ID "int" [pk, increment]
+  Member_Name "varchar(100)" [not null]
+  Email "varchar(100)" [unique]
+  Phone_Number "varchar(15)" [unique]
+  Date_of_Birth "date"
+  Points "int" [not null]
+  Registration_Date "date" [not null]
+  Member_Level "varchar(20)" [not null]
+  Member_Status "varchar(20)" [not null]
+}
+
+Table Member_Address {
+  Address_ID "int" [pk, increment]
+  Member_ID "int" [not null]
+  Label "varchar(30)"
+  Address_Line "varchar(200)" [not null]
+  District "varchar(100)"
+  Province "varchar(100)" [not null]
+  Postal_Code "char(5)"
+  Is_Default "tinyint(1)" [not null]
+}
+
+Table Starbucks_Card {
+  Card_ID "int" [pk, increment]
+  Card_Number "char(16)" [unique, not null]
+  Member_ID "int" [not null]
+  Balance "decimal(10,2)" [not null]
+  Card_Status "varchar(20)" [not null]
+  Issued_Date "date" [not null]
+}
+
+Table Point_Transaction {
+  Txn_ID "int" [pk, increment]
+  Member_ID "int" [not null]
+  Order_ID "int"
+  Txn_Type "varchar(20)" [not null]
+  Points_Change "int" [not null]
+  Created_At "datetime" [not null, note: 'Quantity * Unit_Price (generated)']
+}
+
+Table Orders {
+  Order_ID "int" [pk, increment]
+  Member_ID "int" [not null]
+  Branch_ID "int" [not null]
+  Promotion_ID "int"
+  Order_Type "varchar(20)" [not null]
+  Order_Status "varchar(20)" [not null]
+  Order_DateTime "datetime" [not null, note: 'Quantity * Unit_Price (generated)']
+  Order_Amount "decimal(10,2)" [not null]
+  Note: 'Order_Amount kept in sync by triggers on Order_Item'
+}
+
+Table Order_Item {
+  Order_Item_ID "int" [pk, increment]
+  Order_ID "int" [not null]
+  Product_ID "int" [not null]
+  Size "varchar(10)"
+  Customize "varchar(200)"
+  Quantity "int" [not null]
+  Unit_Price "decimal(8,2)" [not null]
+  Line_Total "decimal(10,2)" [note: 'Quantity * Unit_Price (generated)']
+}
+
+Table Product {
+  Product_ID "int" [pk, increment]
+  Product_Name "varchar(100)" [not null]
+  Product_Description "varchar(255)"
+  Type_Product "varchar(30)" [not null]
+  Base_Price "decimal(8,2)" [not null]
+  Is_Active "tinyint(1)" [not null]
+  Is_Seasonal "tinyint(1)" [not null]
+}
+
+Table Branch {
+  Branch_ID "int" [pk, increment]
+  Branch_Name "varchar(100)" [not null]
+  Location "varchar(200)" [not null]
+  Open_Time "time"
+  Close_Time "time"
+  Contact_Number "varchar(15)"
+  Store_Type "varchar(30)" [not null]
+  Branch_Manager "varchar(100)"
+  Branch_Status "varchar(20)" [not null]
+}
+
+Table Promotion {
+  Promotion_ID "int" [pk, increment]
+  Promotion_Name "varchar(100)" [not null]
+  Description "varchar(255)"
+  Discount_Type "varchar(20)" [not null]
+  Discount_Value "decimal(8,2)" [not null]
+  Start_Date "date" [not null]
+  End_Date "date" [not null]
+  Note: 'Status computed in view v_promotion_status'
+}
+
+Table Offer {
+  Product_ID "int" [not null]
+  Branch_ID "int" [not null]
+  Promotion_ID "int" [not null]
+  Created_Date "date" [not null]
+  indexes {
+    (Product_ID, Branch_ID, Promotion_ID) [pk]
+  }
+}
+
+Table InStorePickup {
+  Order_ID "int" [pk]
+  Pickup_Time "datetime"
+  Pickup_Status "varchar(20)" [not null]
+}
+
+Table OrderToTable {
+  Order_ID "int" [pk]
+  Table_Number "int" [not null]
+}
+
+Table Delivery {
+  Order_ID "int" [pk]
+  Delivery_Address "varchar(255)" [not null]
+  Contact_Phone "varchar(15)" [not null]
+  Delivery_Fee "decimal(8,2)" [not null]
+  Delivery_Status "varchar(20)" [not null]
+  Delivered_At "datetime"
+  Note: 'Delivery_Address is a snapshot copied at order time'
+}
+
+Table Receipt {
+  Receipt_ID "int" [pk, increment]
+  Order_ID "int" [unique, not null]
+  Receipt_DateTime "datetime" [not null]
+  Tax_ID "char(13)"
+  Tax_Address "varchar(200)"
+  Discount "decimal(8,2)" [not null]
+}
+
+Table Payment {
+  Payment_ID "int" [pk, increment]
+  Order_ID "int" [not null]
+  Payment_Method "varchar(20)" [not null]
+  Card_ID "int"
+  Amount "decimal(10,2)" [not null]
+  Paid_At "datetime" [not null, note: 'Quantity * Unit_Price (generated)']
+  Payment_Status "varchar(20)" [not null]
+}
+
+Ref: Delivery.Order_ID - Orders.Order_ID
+Ref: InStorePickup.Order_ID - Orders.Order_ID
+Ref: Member_Address.Member_ID > Member.Member_ID
+Ref: Offer.Branch_ID > Branch.Branch_ID
+Ref: Offer.Product_ID > Product.Product_ID
+Ref: Offer.Promotion_ID > Promotion.Promotion_ID
+Ref: OrderToTable.Order_ID - Orders.Order_ID
+Ref: Order_Item.Order_ID > Orders.Order_ID
+Ref: Order_Item.Product_ID > Product.Product_ID
+Ref: Orders.Branch_ID > Branch.Branch_ID
+Ref: Orders.Promotion_ID > Promotion.Promotion_ID
+Ref: Orders.Member_ID > Member.Member_ID
+Ref: Payment.Card_ID > Starbucks_Card.Card_ID
+Ref: Payment.Order_ID > Orders.Order_ID
+Ref: Point_Transaction.Member_ID > Member.Member_ID
+Ref: Point_Transaction.Order_ID > Orders.Order_ID
+Ref: Receipt.Order_ID - Orders.Order_ID
+Ref: Starbucks_Card.Member_ID > Member.Member_ID
