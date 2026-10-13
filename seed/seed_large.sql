@@ -21,6 +21,7 @@
 --   * Drive Thru branches never get Order-to-Table orders; Delivery never paid by Cash
 --   * Order_Amount computed by triggers; Payment = items - discount + delivery fee
 --   * Points earned = 1 per 10 THB paid (x2 during Point_Multiplier promotions)
+--   * Simulated assumption: 60% of promotion orders add one extra item
 --
 -- Pure SQL, no extra tools needed. Randomness comes from MD5 hashes of row numbers,
 -- so every run gives exactly the same data. (Seeded RAND(n) was avoided: nearby seeds
@@ -29,6 +30,7 @@
 --   Preferences > SQL Editor > DBMS connection read timeout = 600
 -- =====================================================================
 USE coffee_chain_db;
+SET NAMES utf8mb4;   -- make sure accented names (Caffè, Açaí) are stored correctly
 -- Workbench enables safe-update mode by default, which blocks the bulk UPDATEs below
 SET SQL_SAFE_UPDATES = 0;
 SET SQL_BIG_SELECTS = 1;
@@ -268,13 +270,26 @@ SET o.Order_Status = CASE
         ELSE 'Completed'
     END;
 
--- 18% of orders placed while a promotion is running use it (~5% of all orders,
--- since promotions don't cover every day)
+-- Promotions: 18% of orders placed while at least one promotion is running use one.
+-- If several promotions overlap, one is picked at random (hash), and the
+-- "Green Level Welcome" offer only applies within 60 days of registering.
 UPDATE Orders o
-JOIN Promotion p ON DATE(o.Order_DateTime) BETWEEN p.Start_Date AND p.End_Date
-SET o.Promotion_ID = p.Promotion_ID
-WHERE o.Order_ID > 400018
-  AND (o.Order_ID * 2654435761) % 1000 < 180;
+JOIN (
+    SELECT c.Order_ID, c.Promotion_ID
+    FROM (
+        SELECT o2.Order_ID, p.Promotion_ID,
+               ROW_NUMBER() OVER (PARTITION BY o2.Order_ID
+                                  ORDER BY MD5(CONCAT(o2.Order_ID, '-', p.Promotion_ID))) AS rn
+        FROM Orders o2
+        JOIN Member m    ON m.Member_ID = o2.Member_ID
+        JOIN Promotion p ON DATE(o2.Order_DateTime) BETWEEN p.Start_Date AND p.End_Date
+        WHERE o2.Order_ID > 400018
+          AND (o2.Order_ID * 2654435761) % 1000 < 180
+          AND (p.Promotion_ID <> 300003 OR DATEDIFF(o2.Order_DateTime, m.Registration_Date) <= 60)
+    ) c
+    WHERE c.rn = 1
+) pick ON pick.Order_ID = o.Order_ID
+SET o.Promotion_ID = pick.Promotion_ID;
 
 -- ---------------------------------------------------------------------
 -- 6. Order items (1-4 lines per order; triggers fill Order_Amount)
@@ -288,7 +303,8 @@ INSERT INTO tmp_items (Order_ID, r_prod, r_size, r_qty, r_cust)
 SELECT o.Order_ID, (CONV(LEFT(MD5(CONCAT('prod-', o.Order_ID, '-', s.n)), 8), 16, 10) / 4294967296), (CONV(LEFT(MD5(CONCAT('size-', o.Order_ID, '-', s.n)), 8), 16, 10) / 4294967296), (CONV(LEFT(MD5(CONCAT('qty-', o.Order_ID, '-', s.n)), 8), 16, 10) / 4294967296), (CONV(LEFT(MD5(CONCAT('cust-', o.Order_ID, '-', s.n)), 8), 16, 10) / 4294967296)
 FROM Orders o
 JOIN tmp_seq s
-  ON s.n <= 1 + ((o.Order_ID * 7919) % 100 >= 45) + ((o.Order_ID * 7919) % 100 >= 80) + ((o.Order_ID * 7919) % 100 >= 95)
+  ON s.n <= LEAST(4, 1 + ((o.Order_ID * 7919) % 100 >= 45) + ((o.Order_ID * 7919) % 100 >= 80) + ((o.Order_ID * 7919) % 100 >= 95)
+                    + (o.Promotion_ID IS NOT NULL AND (o.Order_ID * 7) % 10 < 6))   -- simulated: promotions nudge 60% of customers to add 1 item
 WHERE o.Order_ID > 400018
 ORDER BY o.Order_ID, s.n;
 

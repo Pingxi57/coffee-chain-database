@@ -13,6 +13,7 @@
 --   * New: deliveries, Starbucks cards, payments, point history, 2 promotions for 2026-27
 -- =====================================================================
 USE coffee_chain_db;
+SET NAMES utf8mb4;   -- make sure accented names (Caffè, Açaí) are stored correctly
 -- Workbench enables safe-update mode by default, which blocks the bulk UPDATEs below
 SET SQL_SAFE_UPDATES = 0;
 

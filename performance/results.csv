@@ -1,0 +1,17 @@
+label,query,title,access,median_ms,rows_read
+before,B1,Today's sales (dashboard tile): all orders on one day,Table scan(Orders),39.44,200022
+before,B2,Same question written with DATE() around the column,Table scan(Orders),30.78,200022
+before,B3,"Branch manager's monthly report: one branch, one month, by day",Index lookup(Orders),17.25,13142
+before,B4,"App screen ""My recent orders"": a member's last 10 orders",Index lookup(Orders),0.9,261
+before,B5,Finance: daily revenue for last month (successful payments only),Table scan(Payment),54.36,203841
+before,B6,Staff searches a customer by name (starts with ...),Table scan(Member),4.0,20012
+before,B7,"Same search but ""contains ..."" (leading wildcard)",Table scan(Member),6.84,20012
+before,B8,Best sellers of the last 7 days (dashboard): join Orders -> Order_Item -> Product,Table scan(o) + Index lookup(i) + Single-row index lookup(p),80.61,221160
+after,B1,Today's sales (dashboard tile): all orders on one day,Index range scan(Orders),1.02,492
+after,B2,Same question written with DATE() around the column,Table scan(Orders),29.84,200022
+after,B3,"Branch manager's monthly report: one branch, one month, by day",Index range scan(Orders),2.12,1779
+after,B4,"App screen ""My recent orders"": a member's last 10 orders",Index lookup(Orders),0.32,9
+after,B5,Finance: daily revenue for last month (successful payments only),Covering index range scan(Payment),9.03,27447
+after,B6,Staff searches a customer by name (starts with ...),Index range scan(Member),0.51,30
+after,B7,"Same search but ""contains ..."" (leading wildcard)",Table scan(Member),9.06,20012
+after,B8,Best sellers of the last 7 days (dashboard): join Orders -> Order_Item -> Product,Index range scan(o) + Covering index lookup(i) + Single-row index lookup(p),22.77,24428

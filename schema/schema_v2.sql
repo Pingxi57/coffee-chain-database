@@ -28,6 +28,7 @@ CREATE DATABASE coffee_chain_db
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_0900_ai_ci;
 USE coffee_chain_db;
+SET NAMES utf8mb4;   -- make sure accented names (Caffè, Açaí) are stored correctly
 
 -- =====================================================================
 -- MASTER TABLES

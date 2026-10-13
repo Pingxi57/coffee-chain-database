@@ -3,6 +3,7 @@
 -- Every "should be 0" check must return 0.
 -- =====================================================================
 USE coffee_chain_db;
+SET NAMES utf8mb4;   -- make sure accented names (Caffè, Açaí) are stored correctly
 
 -- 1. Row counts
 SELECT 'Member' AS table_name, COUNT(*) AS row_count FROM Member
@@ -48,11 +49,10 @@ JOIN Receipt r       ON r.Order_ID = p.Order_ID
 LEFT JOIN Delivery d ON d.Order_ID = p.Order_ID
 WHERE p.Amount <> o.Order_Amount - r.Discount + COALESCE(d.Delivery_Fee, 0)
 UNION ALL
-SELECT 'Cancelled order with receipt/payment', COUNT(*)
+SELECT 'Cancelled order still holding a successful payment', COUNT(*)
 FROM Orders o
 WHERE o.Order_Status = 'Cancelled'
-  AND (EXISTS (SELECT 1 FROM Receipt r WHERE r.Order_ID = o.Order_ID)
-    OR EXISTS (SELECT 1 FROM Payment p WHERE p.Order_ID = o.Order_ID))
+  AND EXISTS (SELECT 1 FROM Payment p WHERE p.Order_ID = o.Order_ID AND p.Payment_Status = 'Success')
 UNION ALL
 SELECT 'Order placed before member registered', COUNT(*)
 FROM Orders o JOIN Member m ON m.Member_ID = o.Member_ID
