@@ -21,6 +21,8 @@ business rules enforced inside the database, and a measured indexing study.
 | **Business rules** | 9 triggers, 1 function, 4 stored procedures, with one-transaction order placement and automatic rollback |
 | **Performance** | `EXPLAIN ANALYZE` before/after indexing. Day lookup **50 ms → 1.7 ms** (200,020 → 492 rows read). Analytics script **9.3 s → 6.4 s** |
 
+**Full report (20 pages):** [docs/Coffee_Chain_Database_Report.pdf](docs/Coffee_Chain_Database_Report.pdf)
+
 ## ER diagram
 
 ![ERD v2](docs/erd_v2.png)
